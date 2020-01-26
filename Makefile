@@ -1,10 +1,12 @@
+OTS_VERSION = 1.3.5
+
 .PHONY: build push test
 
 build:
-	docker build -t overv/openstreetmap-tile-server .
+	docker build -t s3pweb/ots:$(OTS_VERSION) .
 
 push: build
-	docker push overv/openstreetmap-tile-server:latest
+	docker push s3pweb/ots:$(OTS_VERSION)
 
 test: build
 	docker volume create openstreetmap-data
