@@ -125,13 +125,12 @@ if [ "$1" = "pg" ]; then
 
     # Run while handling docker stop's SIGTERM
     stop_handler() {
-        kill -TERM "$child"
+       service postgresql stop
     }
     trap stop_handler SIGTERM
 
-    service postgresql stop
+  sleep infinity
 
-    exit 0
 fi
 
 if [ "$1" = "apache" ]; then

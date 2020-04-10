@@ -1,0 +1,47 @@
+version: "3"
+
+volumes:
+  ots-data-france-latest:
+    external: true
+
+  ots-tiles-france-latest:
+    external: true
+
+  ots-tiles-test:
+
+services:
+  ots_pg:
+    image: "s3pweb/ots:1.3.5"
+    command: pg
+    environment:
+      - "OSM2PGSQL_EXTRA_ARGS=-C 16384"      
+    volumes:
+      - ots-data-france-latest:/var/lib/postgresql/10/main
+
+  ots_apache:
+    image: "s3pweb/ots:1.3.5"
+    command: apache
+    environment:
+      - "ALLOW_CORS=1"
+      - "THREADS=20"
+    volumes:
+      - ots-tiles-france-latest:/var/lib/mod_tile
+    links:
+      - ots_pg
+    ports:
+      - "80:80"
+
+  ots_apache_1:
+    image: "s3pweb/ots:1.3.5"
+    command: apache
+    environment:
+      - "ALLOW_CORS=1"
+      - "THREADS=20"
+    volumes:
+      - ots-tiles-test:/var/lib/mod_tile
+    links:
+      - ots_pg
+    ports:
+      - "8080:80"
+
+  

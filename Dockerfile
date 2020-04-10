@@ -115,6 +115,9 @@ WORKDIR /home/renderer/src/openstreetmap-carto
 USER root
 RUN npm install -g carto@0.18.2
 USER renderer
+RUN sed -i '/  osm2pgsql: &osm2pgsql/a\    password: "renderer"' project.mml
+RUN sed -i '/  osm2pgsql: &osm2pgsql/a\    host: "ots_pg"' project.mml
+RUN head -40 project.mml
 RUN carto project.mml > mapnik.xml
 
 # Load shapefiles
