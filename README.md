@@ -1,5 +1,7 @@
 # openstreetmap-tile-server
 
+[![Build Status](https://travis-ci.org/Overv/openstreetmap-tile-server.svg?branch=master)](https://travis-ci.org/Overv/openstreetmap-tile-server) [![](https://images.microbadger.com/badges/image/overv/openstreetmap-tile-server.svg)](https://microbadger.com/images/overv/openstreetmap-tile-server "openstreetmap-tile-server")
+
 This container allows you to easily set up an OpenStreetMap PNG tile server given a `.osm.pbf` file. It is based on the [latest Ubuntu 18.04 LTS guide](https://switch2osm.org/manually-building-a-tile-server-18-04-lts/) from [switch2osm.org](https://switch2osm.org/) and therefore uses the default OpenStreetMap style.
 
 ## Setting up the server
@@ -13,7 +15,7 @@ Next, download an .osm.pbf extract from geofabrik.de for the region that you're 
 ```
 docker run \
     -v /absolute/path/to/luxembourg.osm.pbf:/data.osm.pbf \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     overv/openstreetmap-tile-server \
     import
 ```
@@ -22,18 +24,32 @@ If the container exits without errors, then your data has been successfully impo
 
 ### Automatic updates (optional)
 
-If your import is an extract of the planet and has polygonal bounds associated with it, like those from geofabrik.de, then it is possible to set your server up for automatic updates. Make sure to reference both the OSM file and the polygon file during the import process to facilitate this:
+If your import is an extract of the planet and has polygonal bounds associated with it, like those from geofabrik.de, then it is possible to set your server up for automatic updates. Make sure to reference both the OSM file and the polygon file during the import process to facilitate this, and also include the `UPDATES=enabled` variable:
 
 ```
 docker run \
+    -e UPDATES=enabled \
     -v /absolute/path/to/luxembourg.osm.pbf:/data.osm.pbf \
     -v /absolute/path/to/luxembourg.poly:/data.poly \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     overv/openstreetmap-tile-server \
     import
 ```
 
-Refer to the section *Automatic updating and tile expiry* to actually enable the updates.
+Refer to the section *Automatic updating and tile expiry* to actually enable the updates while running the tile server.
+
+### Letting the container download the file
+
+It is also possible to let the container download files for you rather than mounting them in advance by using the `DOWNLOAD_PBF` and `DOWNLOAD_POLY` parameters:
+
+```
+docker run \
+    -e DOWNLOAD_PBF=https://download.geofabrik.de/europe/luxembourg-latest.osm.pbf \
+    -e DOWNLOAD_POLY=https://download.geofabrik.de/europe/luxembourg.poly \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
+    overv/openstreetmap-tile-server \
+    import
+```
 
 ## Running the server
 
@@ -41,13 +57,17 @@ Run the server like this:
 
 ```
 docker run \
-    -p 80:80 \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -p 8080:80 \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -d overv/openstreetmap-tile-server \
     run
 ```
 
-Your tiles will now be available at `http://localhost:80/tile/{z}/{x}/{y}.png`. The demo map in `leaflet-demo.html` will then be available on `http://localhost:80`. Note that it will initially take quite a bit of time to render the larger tiles for the first time.
+Your tiles will now be available at `http://localhost:8080/tile/{z}/{x}/{y}.png`. The demo map in `leaflet-demo.html` will then be available on `http://localhost:8080`. Note that it will initially take quite a bit of time to render the larger tiles for the first time.
+
+### Using Docker Compose
+
+The `docker-compose.yml` file included with this repository shows how the aforementioned command can be used with Docker Compose to run your server.
 
 ### Preserving rendered tiles
 
@@ -56,8 +76,8 @@ Tiles that have already been rendered will be stored in `/var/lib/mod_tile`. To 
 ```
 docker volume create openstreetmap-rendered-tiles
 docker run \
-    -p 80:80 \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -p 8080:80 \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -v openstreetmap-rendered-tiles:/var/lib/mod_tile \
     -d overv/openstreetmap-tile-server \
     run
@@ -67,13 +87,13 @@ docker run \
 
 ### Enabling automatic updating (optional)
 
-Given that you've specified both the OSM data and polygon as specified in the *Automatic updates* section during server setup, you can enable the updating process by setting the variable `UPDATES` to `enabled`:
+Given that you've set up your import as described in the *Automatic updates* section during server setup, you can enable the updating process by setting the `UPDATES` variable while running your server as well:
 
 ```
 docker run \
-    -p 80:80 \
+    -p 8080:80 \
     -e UPDATES=enabled \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -v openstreetmap-rendered-tiles:/var/lib/mod_tile \
     -d overv/openstreetmap-tile-server \
     run
@@ -83,13 +103,13 @@ This will enable a background process that automatically downloads changes from 
 
 ### Cross-origin resource sharing
 
-To enable the `Access-Control-Allow-Origin` header to be able to retrieve tiles from other domains, simply set the `ALLOW_CORS` variable to `1`:
+To enable the `Access-Control-Allow-Origin` header to be able to retrieve tiles from other domains, simply set the `ALLOW_CORS` variable to `enabled`:
 
 ```
 docker run \
-    -p 80:80 \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
-    -e ALLOW_CORS=1 \
+    -p 8080:80 \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
+    -e ALLOW_CORS=enabled \
     -d overv/openstreetmap-tile-server \
     run
 ```
@@ -100,9 +120,9 @@ To connect to the PostgreSQL database inside the container, make sure to expose 
 
 ```
 docker run \
-    -p 80:80 \
+    -p 8080:80 \
     -p 5432:5432 \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -d overv/openstreetmap-tile-server \
     run
 ```
@@ -117,10 +137,10 @@ The default password is `renderer`, but it can be changed using the `PGPASSWORD`
 
 ```
 docker run \
-    -p 80:80 \
+    -p 8080:80 \
     -p 5432:5432 \
     -e PGPASSWORD=secret \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -d overv/openstreetmap-tile-server \
     run
 ```
@@ -134,9 +154,9 @@ Details for update procedure and invoked scripts can be found here [link](https:
 The import and tile serving processes use 4 threads by default, but this number can be changed by setting the `THREADS` environment variable. For example:
 ```
 docker run \
-    -p 80:80 \
+    -p 8080:80 \
     -e THREADS=24 \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -d overv/openstreetmap-tile-server \
     run
 ```
@@ -146,9 +166,9 @@ docker run \
 The import and tile serving processes use 800 MB RAM cache by default, but this number can be changed by option -C. For example:
 ```
 docker run \
-    -p 80:80 \
+    -p 8080:80 \
     -e "OSM2PGSQL_EXTRA_ARGS=-C 4096" \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -d overv/openstreetmap-tile-server \
     run
 ```
@@ -158,9 +178,9 @@ docker run \
 The database use the autovacuum feature by default. This behavior can be changed with `AUTOVACUUM` environment variable. For example:
 ```
 docker run \
-    -p 80:80 \
+    -p 8080:80 \
     -e AUTOVACUUM=off \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -d overv/openstreetmap-tile-server \
     run
 ```
@@ -173,7 +193,7 @@ If you are planning to import the entire planet or you are running into memory e
 docker run \
     -v /absolute/path/to/luxembourg.osm.pbf:/data.osm.pbf \
     -v openstreetmap-nodes:/nodes \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     -e "OSM2PGSQL_EXTRA_ARGS=--flat-nodes /nodes/flat_nodes.bin" \
     overv/openstreetmap-tile-server \
     import
@@ -197,8 +217,8 @@ renderd[121]: reason: Postgis Plugin: ERROR: could not resize shared memory segm
 To raise it use `--shm-size` parameter. For example:
 ```
 docker run \
-    -p 80:80 \
-    -v openstreetmap-data:/var/lib/postgresql/10/main \
+    -p 8080:80 \
+    -v openstreetmap-data:/var/lib/postgresql/12/main \
     --shm-size="192m" \
     -d overv/openstreetmap-tile-server \
     run
@@ -218,7 +238,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
