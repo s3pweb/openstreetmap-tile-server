@@ -1,4 +1,4 @@
-OTS_VERSION = 1.3.5
+OTS_VERSION = 1.3.10
 
 .PHONY: build push test
 

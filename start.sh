@@ -10,7 +10,7 @@ docker run \
     -e DOWNLOAD_POLY=https://download.geofabrik.de/europe/luxembourg.poly \
     -v openstreetmap-data-test:/var/lib/postgresql/12/main \
     -v openstreetmap-rendered-tiles-test:/var/lib/mod_tile \
-    overv/openstreetmap-tile-server:latest \
+    s3pweb/ots:1.3.10 \
     import
 
 docker run \
@@ -19,6 +19,6 @@ docker run \
 	-e ALLOW_CORS=enabled \
     -v openstreetmap-data:/var/lib/postgresql/12/main \
     -v openstreetmap-rendered-tiles:/var/lib/mod_tile \
-    -d overv/openstreetmap-tile-server:latest \
+    -d s3pweb/ots:1.3.10 \
     run
 

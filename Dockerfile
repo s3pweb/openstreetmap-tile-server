@@ -127,8 +127,9 @@ RUN mkdir -p /home/renderer/src \
  && git clone https://github.com/s3pweb/openstreetmap-carto.git \
  && git -C openstreetmap-carto checkout custom \
  && cd openstreetmap-carto \
- && sed -i '/  osm2pgsql: &osm2pgsql/a\    password: "renderer"' project.mml \
- && sed -i '/  osm2pgsql: &osm2pgsql/a\    host: "ots_pg"' project.mml \
+#  && sed -i '/  osm2pgsql: &osm2pgsql/a\    password: "renderer"' project.mml \
+#  && sed -i '/  osm2pgsql: &osm2pgsql/a\    host: "ots_pg"' project.mml \
+# && head -50 project.mml \
  && rm -rf .git \
  && npm install -g carto@0.18.2 \
  && carto project.mml > mapnik.xml \

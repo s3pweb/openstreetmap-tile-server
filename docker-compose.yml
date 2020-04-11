@@ -1,47 +1,58 @@
 version: "3"
 
 volumes:
-  ots-data-france-latest:
-    external: true
+  openstreetmap-data-v1:
 
-  ots-tiles-france-latest:
-    external: true
-
-  ots-tiles-test:
+  openstreetmap-rendered-tiles-v1:
 
 services:
+
+  ots_import:
+    image: "s3pweb/ots:1.3.10"
+    command: import
+    environment:
+      #- "UPDATES=enabled"
+      - "DOWNLOAD_PBF=https://download.geofabrik.de/europe/luxembourg-latest.osm.pbf"
+      - "DOWNLOAD_POLY=https://download.geofabrik.de/europe/luxembourg.poly"
+      - "OSM2PGSQL_EXTRA_ARGS=-C 4096"
+    volumes:      
+      - openstreetmap-rendered-tiles-v1:/var/lib/mod_tile
+      - openstreetmap-data-v1:/var/lib/postgresql/12/main
+    deploy:
+      replicas: 0
+
   ots_pg:
-    image: "s3pweb/ots:1.3.5"
+    image: "s3pweb/ots:1.3.10"
     command: pg
     environment:
-      - "OSM2PGSQL_EXTRA_ARGS=-C 16384"      
+      - "OSM2PGSQL_EXTRA_ARGS=-C 4096"      
     volumes:
-      - ots-data-france-latest:/var/lib/postgresql/10/main
+      - openstreetmap-data-v1:/var/lib/postgresql/12/main
+    deploy:
+      replicas: 0
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   ots_apache:
-    image: "s3pweb/ots:1.3.5"
+    image: "s3pweb/ots:1.3.10"
     command: apache
     environment:
       - "ALLOW_CORS=1"
-      - "THREADS=20"
+      - "THREADS=4"
     volumes:
-      - ots-tiles-france-latest:/var/lib/mod_tile
+      - openstreetmap-rendered-tiles-v1:/var/lib/mod_tile
     links:
       - ots_pg
     ports:
-      - "80:80"
-
-  ots_apache_1:
-    image: "s3pweb/ots:1.3.5"
-    command: apache
-    environment:
-      - "ALLOW_CORS=1"
-      - "THREADS=20"
-    volumes:
-      - ots-tiles-test:/var/lib/mod_tile
-    links:
-      - ots_pg
-    ports:
-      - "8080:80"
-
+      - "4080:80"
+    deploy:
+      replicas: 0
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
   
