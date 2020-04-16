@@ -1,9 +1,8 @@
 version: "3"
 
 volumes:
-  openstreetmap-data-v1:
-
-  openstreetmap-rendered-tiles-v1:
+  openstreetmap-data-europe:
+  openstreetmap-rendered-tiles-europe:
 
 services:
 
@@ -11,15 +10,19 @@ services:
     image: "s3pweb/ots:1.3.10"
     command: import
     environment:
-      #- "UPDATES=enabled"
-      - "DOWNLOAD_PBF=https://download.geofabrik.de/europe/luxembourg-latest.osm.pbf"
-      - "DOWNLOAD_POLY=https://download.geofabrik.de/europe/luxembourg.poly"
-      - "OSM2PGSQL_EXTRA_ARGS=-C 4096"
+      - "UPDATES=enabled"
+      #- "DOWNLOAD_PBF=https://download.geofabrik.de/europe-latest.osm.pbf"
+      #"- "DOWNLOAD_POLY=https://download.geofabrik.de/europe/luxembourg.poly"
+      - "OSM2PGSQL_EXTRA_ARGS=-C 40960"
     volumes:      
-      - openstreetmap-rendered-tiles-v1:/var/lib/mod_tile
-      - openstreetmap-data-v1:/var/lib/postgresql/12/main
+      - /opt/osm/maps/europe-latest.osm.pbf:/data.osm.pbf
+      - /opt/osm/maps/europe.poly:/data.poly
+      - openstreetmap-rendered-tiles-europe:/var/lib/mod_tile
+      - openstreetmap-data-europe:/var/lib/postgresql/12/main
     deploy:
       replicas: 0
+      restart_policy:
+        condition: none
 
   ots_pg:
     image: "s3pweb/ots:1.3.10"
@@ -27,7 +30,7 @@ services:
     environment:
       - "OSM2PGSQL_EXTRA_ARGS=-C 4096"      
     volumes:
-      - openstreetmap-data-v1:/var/lib/postgresql/12/main
+      - openstreetmap-data-europe:/var/lib/postgresql/12/main
     deploy:
       replicas: 0
       restart_policy:
@@ -41,9 +44,9 @@ services:
     command: apache
     environment:
       - "ALLOW_CORS=1"
-      - "THREADS=4"
+      - "THREADS=30"
     volumes:
-      - openstreetmap-rendered-tiles-v1:/var/lib/mod_tile
+      - openstreetmap-rendered-tiles-europe:/var/lib/mod_tile
     links:
       - ots_pg
     ports:
